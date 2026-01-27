@@ -61,8 +61,8 @@ using namespace libtest;
 #include <algorithm>
 #include <stdexcept>
 
-#ifndef __USE_GNU
-static char **environ= NULL;
+#ifndef __APPLE__
+extern char **environ;
 #endif
 
 #ifndef FD_CLOEXEC
