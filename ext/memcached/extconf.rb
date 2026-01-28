@@ -1,9 +1,10 @@
 require 'mkmf'
 require 'rbconfig'
 
-unless find_header('sasl/sasl.h')
-  abort 'Please install SASL to continue. The package is called libsasl2-dev on Ubuntu and cyrus-sasl on Gentoo.'
-end
+# SASL support disabled for Alpine Linux compatibility
+# unless find_header('sasl/sasl.h')
+#   abort 'Please install SASL to continue. The package is called libsasl2-dev on Ubuntu and cyrus-sasl on Gentoo.'
+# end
 
 HERE = __dir__
 LIBMEMCACHED_DIR = Dir.glob(File.join(HERE, '..', '..', 'vendor', 'libmemcached-1.0.18')).first
@@ -26,7 +27,7 @@ $CC = "CC=#{RbConfig::MAKEFILE_CONFIG['CC'].inspect}"
 
 # JRuby's default configure options can't build libmemcached properly
 LIBM_CFLAGS = defined?(JRUBY_VERSION) ? '-fPIC -g -O2' : $CFLAGS
-LIBM_LDFLAGS = defined?(JRUBY_VERSION) ? '-fPIC -lsasl2 -lm' : $LDFLAGS
+LIBM_LDFLAGS = defined?(JRUBY_VERSION) ? '-fPIC -lm' : $LDFLAGS
 
 GMAKE_CMD = RbConfig::CONFIG['host_os'].downcase =~ /bsd|solaris/ ? 'gmake' : 'make'
 
@@ -46,13 +47,13 @@ def compile_libmemcached
     ts_now = (Time.now - 1800).strftime('%Y%m%d%H%M.%S')
     run("find . | xargs touch -t #{ts_now}", "Touching all files so autoconf doesn't run.")
     run("env CFLAGS='-fPIC #{LIBM_CFLAGS}' LDFLAGS='-fPIC #{LIBM_LDFLAGS}' ./configure --prefix=#{build_folder} --libdir=#{build_folder}/lib --with-pic --without-memcached --disable-shared --disable-util\
-s --disable-dependency-tracking #{$CC} #{$EXTRA_CONF} 2>&1", 'Configuring libmemcached.')
+s --disable-dependency-tracking --disable-sasl #{$CC} #{$EXTRA_CONF} 2>&1", 'Configuring libmemcached.')
     run("#{GMAKE_CMD} clean 2>&1")
     run("#{GMAKE_CMD} CXXFLAGS='#{$CXXFLAGS}' 2>&1")
     run("#{GMAKE_CMD} install 2>&1")
 
     pcfile = File.join(LIBMEMCACHED_DIR, 'build', 'lib', 'pkgconfig', 'libmemcached.pc')
-    $LDFLAGS << ' -lsasl2 ' + `pkg-config --libs --static #{pcfile}`.strip
+    $LDFLAGS << ' ' + `pkg-config --libs --static #{pcfile}`.strip
   end
   $DEFLIBPATH.unshift("#{LIBMEMCACHED_DIR}/build")
   dir_config('memcached', "#{LIBMEMCACHED_DIR}/build/include", "#{LIBMEMCACHED_DIR}/build/lib")
