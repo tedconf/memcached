@@ -61,9 +61,10 @@ using namespace libtest;
 #include <algorithm>
 #include <stdexcept>
 
-#ifndef __APPLE__
+// environ is declared as extern for POSIX compatibility across all platforms
+// (glibc, musl, macOS, BSD). This replaces the original static declaration
+// that conflicted with musl's extern declaration.
 extern char **environ;
-#endif
 
 #ifndef FD_CLOEXEC
 # define FD_CLOEXEC 0
